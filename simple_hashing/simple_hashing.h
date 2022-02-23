@@ -31,7 +31,7 @@ namespace ENCRYPTO {
 
 class HashTableEntry;
 
-class SimpleTable : public HashingTable {
+class SimpleTable final: public HashingTable {
  public:
   SimpleTable() = delete;
 
@@ -48,6 +48,8 @@ class SimpleTable : public HashingTable {
   bool Insert(std::uint64_t element) final;
 
   bool Insert(const std::vector<std::uint64_t>& elements) final;
+  bool Insert(const std::vector<std::uint64_t>& elements,
+              const std::vector<std::uint64_t>& payloads) final;
 
   bool Print() const final;
 
@@ -56,10 +58,13 @@ class SimpleTable : public HashingTable {
   void SetMaximumBinSize(std::size_t size);
 
   std::vector<uint64_t> AsRawVector() const final;
+  std::vector<uint64_t> PayloadsAsRawVector() const final;
   std::vector<uint64_t> AsRawVectorPadded() const;
   std::vector<std::vector<uint64_t>> AsRaw2DVector() const;
+  std::vector<std::vector<uint64_t>> PayloadsAsRaw2DVector() const;
 
   std::vector<std::size_t> GetNumOfElementsInBins() const final;
+  bool HasPayloads() const { return has_payloads_; }
 
  private:
   std::vector<std::vector<HashTableEntry>> hash_table_;

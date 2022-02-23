@@ -32,11 +32,29 @@ namespace ENCRYPTO {
 
 bool SimpleTable::Insert(std::uint64_t element) {
   elements_.push_back(element);
+
+  this->has_payloads_ = false;
   return true;
 }
 
 bool SimpleTable::Insert(const std::vector<std::uint64_t>& elements) {
   elements_.insert(this->elements_.end(), elements.begin(), elements.end());
+
+  this->has_payloads_ = false;
+  return true;
+}
+
+bool SimpleTable::Insert(const std::vector<std::uint64_t>& elements,
+                          const std::vector<std::uint64_t>& payloads) {
+  if (elements.size() != payloads.size()) {
+    throw std::invalid_argument("num elements does not match num payloads in cuckoo insert\n" 
+                      "  elements: " + std::to_string(elements.size()) + "\n"
+                      "  payloads: " + std::to_string(payloads.size()));
+  }
+  elements_.insert(this->elements_.end(), elements.begin(), elements.end());
+  payloads_.insert(this->payloads_.end(), payloads.begin(), payloads.end());
+
+  this->has_payloads_ = true;
   return true;
 }
 
@@ -47,8 +65,12 @@ bool SimpleTable::Print() const {
                  "before you print it.\n";
     return false;
   }
+  std::string payload_string = "";
+  if (this->has_payloads_) {
+    payload_string = "payload ";
+  }
   std::cout << "Simple hashing - table content "
-               "(the format is \"[bin#] initial_element# element_value (function#)\"):\n";
+               "(the format is \"[bin#] initial_element# element_value " << payload_string << "(function#)\"):\n";
   for (auto bin_i = 0ull; bin_i < hash_table_.size(); ++bin_i) {
     std::string bin_delimiter = bin_i == 0 ? "" : ", ";
     std::cout << fmt::format("{}[{}] ", bin_delimiter, bin_i);
@@ -56,10 +78,11 @@ bool SimpleTable::Print() const {
       const auto& entry = hash_table_.at(bin_i).at(entry_i);
       std::string id = entry.IsEmpty() ? "" : std::to_string(entry.GetGlobalID());
       std::string value = entry.IsEmpty() ? "" : std::to_string(entry.GetElement());
+      std::string payload = entry.IsEmpty() ? "" : std::to_string(entry.GetPayload());
       std::string delimiter = entry_i == 0 ? "" : ", ";
       std::string f = entry.IsEmpty() ? "" : std::to_string(entry.GetCurrentFunctinId());
       f = std::string("(" + f + ")");
-      std::cout << fmt::format("{}{} {} {}", delimiter, id, value, f);
+      std::cout << fmt::format("{}{} {} {} {}", delimiter, id, value, payload, f);
     }
   }
 
@@ -87,6 +110,19 @@ std::vector<uint64_t> SimpleTable::AsRawVector() const {
   return raw_table;
 }
 
+std::vector<uint64_t> SimpleTable::PayloadsAsRawVector() const {
+  std::vector<uint64_t> raw_table;
+  raw_table.reserve(elements_.size());
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    for (auto j = 0ull; j < hash_table_.at(i).size(); ++j) {
+      raw_table.push_back(hash_table_.at(i).at(j).GetPayload());
+    }
+  }
+
+  return raw_table;
+}
+
 std::vector<std::vector<uint64_t>> SimpleTable::AsRaw2DVector() const {
   std::vector<std::vector<uint64_t>> raw_table(num_bins_);
 
@@ -95,6 +131,22 @@ std::vector<std::vector<uint64_t>> SimpleTable::AsRaw2DVector() const {
       raw_table.at(i).push_back(
           hash_table_.at(i).at(j).GetElement() ^
           static_cast<uint64_t>(hash_table_.at(i).at(j).GetCurrentFunctinId()));
+    }
+  }
+
+  return raw_table;
+}
+
+std::vector<std::vector<uint64_t>> SimpleTable::PayloadsAsRaw2DVector() const {
+  if (!this->HasPayloads()) {
+    throw std::invalid_argument("Simple table does not have payloads, so can't return 2D vector of them");
+  }
+  std::vector<std::vector<uint64_t>> raw_table(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    for (auto j = 0ull; j < hash_table_.at(i).size(); ++j) {
+      raw_table.at(i).push_back(
+          hash_table_.at(i).at(j).GetPayload());
     }
   }
 
@@ -153,8 +205,17 @@ bool SimpleTable::MapElementsToTable() {
   GenerateLUTs();
 
   for (auto element_id = 0ull; element_id < elements_.size(); ++element_id) {
-    HashTableEntry current_entry(elements_.at(element_id), element_id, num_of_hash_functions_,
-                                 num_bins_);
+    // Check if it has payloads, decide what to do from there? TODO
+    HashTableEntry current_entry;
+    if (this->HasPayloads()) {
+      current_entry = HashTableEntry(elements_.at(element_id), payloads_.at(element_id), element_id, num_of_hash_functions_,
+                                  num_bins_);
+    } else {
+      current_entry = HashTableEntry(elements_.at(element_id), element_id, num_of_hash_functions_,
+                                   num_bins_);
+    }
+    // HashTableEntry current_entry(elements_.at(element_id), element_id, num_of_hash_functions_,
+    //                              num_bins_);
 
     // find the new element's mappings and put them to the corresponding std::vector
     auto addresses = HashToPosition(elements_.at(element_id));

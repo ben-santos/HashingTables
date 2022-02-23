@@ -38,10 +38,13 @@ class HashingTable {
 
   virtual bool Insert(std::uint64_t element) = 0;
   virtual bool Insert(const std::vector<std::uint64_t>& elements) = 0;
+  virtual bool Insert(const std::vector<std::uint64_t>& elements, 
+                        const std::vector<std::uint64_t>& payloads) = 0;
 
   virtual bool Print() const = 0;
 
   virtual std::vector<uint64_t> AsRawVector() const = 0;
+  virtual std::vector<uint64_t> PayloadsAsRawVector() const = 0;
 
   virtual std::vector<std::size_t> GetNumOfElementsInBins() const = 0;
 
@@ -55,6 +58,7 @@ class HashingTable {
   HashingTable() = default;
 
   std::vector<std::uint64_t> elements_;
+  std::vector<std::uint64_t> payloads_;
 
   // binning
   double epsilon_ = 1.2f;
@@ -73,6 +77,7 @@ class HashingTable {
   std::vector<std::vector<std::vector<std::uint64_t>>> luts_;
 
   bool mapped_ = false;
+  bool has_payloads_ = false;
 
   virtual bool AllocateTable() = 0;
   virtual bool MapElementsToTable() = 0;

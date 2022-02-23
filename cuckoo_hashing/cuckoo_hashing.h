@@ -30,7 +30,7 @@ namespace ENCRYPTO {
 
 class HashTableEntry;
 
-class CuckooTable : public HashingTable {
+class CuckooTable final: public HashingTable {
  public:
   CuckooTable() = delete;
 
@@ -47,6 +47,8 @@ class CuckooTable : public HashingTable {
   bool Insert(std::uint64_t element) final;
 
   bool Insert(const std::vector<std::uint64_t>& elements) final;
+  bool Insert(const std::vector<std::uint64_t>& elements,
+              const std::vector<std::uint64_t>& payloads) final;
 
   void SetRecursiveInsertionLimiter(std::size_t limiter);
 
@@ -56,7 +58,10 @@ class CuckooTable : public HashingTable {
 
   auto GetStashSize() const { return stash_.size(); }
 
+  auto HasPayloads() const { return has_payloads_; }
+
   std::vector<uint64_t> AsRawVector() const final;
+  std::vector<uint64_t> PayloadsAsRawVector() const final;
 
   std::vector<std::size_t> GetNumOfElementsInBins() const final;
 

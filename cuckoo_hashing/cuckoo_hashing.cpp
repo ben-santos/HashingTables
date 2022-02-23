@@ -32,6 +32,8 @@ namespace ENCRYPTO {
 
 void swap(HashTableEntry& a, HashTableEntry& b) noexcept {
   std::swap(a.value_, b.value_);
+  std::swap(a.payload_, b.payload_);
+  std::swap(a.has_payload_, b.has_payload_);
   std::swap(a.global_id_, b.global_id_);
   std::swap(a.possible_addresses_, b.possible_addresses_);
   std::swap(a.current_function_id_, b.current_function_id_);
@@ -41,11 +43,29 @@ void swap(HashTableEntry& a, HashTableEntry& b) noexcept {
 
 bool CuckooTable::Insert(std::uint64_t element) {
   elements_.push_back(element);
+
+  this->has_payloads_ = false;
   return true;
 }
 
 bool CuckooTable::Insert(const std::vector<std::uint64_t>& elements) {
   elements_.insert(this->elements_.end(), elements.begin(), elements.end());
+
+  this->has_payloads_ = false;
+  return true;
+};
+
+bool CuckooTable::Insert(const std::vector<std::uint64_t>& elements,
+                         const std::vector<std::uint64_t>& payloads) {
+  if (elements.size() != payloads.size()) {
+    throw std::invalid_argument("num elements does not match num payloads in cuckoo insert\n" 
+                      "  elements: " + std::to_string(elements.size()) + "\n"
+                      "  payloads: " + std::to_string(payloads.size()));
+  }
+  elements_.insert(this->elements_.end(), elements.begin(), elements.end());
+  payloads_.insert(this->payloads_.end(), payloads.begin(), payloads.end());
+
+  this->has_payloads_ = true;
   return true;
 };
 
@@ -60,15 +80,20 @@ bool CuckooTable::Print() const {
                  "before you print it.\n";
     return false;
   }
+  std::string payload_string = "";
+  if (this->has_payloads_) {
+    payload_string = "payload ";
+  }
   std::cout << "Cuckoo hashing - table content "
-               "(the format is \"[bin#] initial_element# element_value (function#)\"):\n";
+               "(the format is \"[bin#] initial_element# element_value " << payload_string << "(function#)\"):\n";
   for (auto i = 0ull; i < hash_table_.size(); ++i) {
     const auto& entry = hash_table_.at(i);
     std::string id = entry.IsEmpty() ? "" : std::to_string(entry.GetGlobalID());
     std::string value = entry.IsEmpty() ? "" : std::to_string(entry.GetElement());
+    std::string payload = entry.IsEmpty() ? "" : std::to_string(entry.GetPayload());
     std::string f = entry.IsEmpty() ? "" : std::to_string(entry.GetCurrentFunctinId());
     f = std::string("(" + f + ")");
-    std::cout << fmt::format("[{}] {} {} {}", i, id, value, f);
+    std::cout << fmt::format("[{}] {} {} {} {}", i, id, value, payload, f);
   }
 
   if (stash_.size() == 0) {
@@ -90,10 +115,28 @@ bool CuckooTable::Print() const {
 std::vector<uint64_t> CuckooTable::AsRawVector() const {
   std::vector<uint64_t> raw_table;
   raw_table.reserve(num_bins_);
-
+  // Here, the hash table function is xored to the value.
+  // So you might get a +-1 or 2 on your value.
+  // It's not an issue, because it's done on both sides, but
+  // it does obscure cleartext following. 
+  // I'm not sure why they do this.
   for (auto i = 0ull; i < num_bins_; ++i) {
     raw_table.push_back(hash_table_.at(i).GetElement() ^
                         static_cast<uint64_t>(hash_table_.at(i).GetCurrentFunctinId()));
+  }
+
+  return raw_table;
+}
+
+std::vector<uint64_t> CuckooTable::PayloadsAsRawVector() const {
+  if (!this->HasPayloads()) {
+    throw std::invalid_argument("Table does not have payloads: can't return them as raw vector");
+  }
+  std::vector<uint64_t> raw_table;
+  raw_table.reserve(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    raw_table.push_back(hash_table_.at(i).GetPayload());
   }
 
   return raw_table;
@@ -141,8 +184,17 @@ bool CuckooTable::MapElementsToTable() {
   GenerateLUTs();
 
   for (auto element_id = 0ull; element_id < elements_.size(); ++element_id) {
-    HashTableEntry current_entry(elements_.at(element_id), element_id, num_of_hash_functions_,
+    // Check if it has payloads, decide what to do from there? TODO
+    HashTableEntry current_entry;
+    if (this->HasPayloads()) {
+      current_entry = HashTableEntry(elements_.at(element_id), payloads_.at(element_id), element_id, num_of_hash_functions_,
                                  num_bins_);
+    } else {
+      current_entry = HashTableEntry(elements_.at(element_id), element_id, num_of_hash_functions_,
+                                 num_bins_);
+    }
+    // HashTableEntry current_entry(elements_.at(element_id), element_id, num_of_hash_functions_,
+                                //  num_bins_);
 
     // find the new element's mappings and put them to the corresponding std::vector
     auto addresses = HashToPosition(elements_.at(element_id));
