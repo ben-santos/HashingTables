@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <vector>
+#include <limits>
 
 namespace ENCRYPTO {
 constexpr auto DUMMY_ELEMENT = std::numeric_limits<std::size_t>::max();
