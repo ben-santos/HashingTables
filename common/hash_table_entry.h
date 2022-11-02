@@ -32,9 +32,11 @@ constexpr auto DUMMY_ELEMENT = std::numeric_limits<std::size_t>::max();
 
 class HashTableEntry {
  public:
-  HashTableEntry() { global_id_ = value_ = DUMMY_ELEMENT; }
+  HashTableEntry() { global_id_ = value_ = payload_ = DUMMY_ELEMENT; }
 
   HashTableEntry(std::uint64_t value, std::size_t global_id, std::size_t num_of_functions,
+                 std::size_t num_of_bins);
+  HashTableEntry(std::uint64_t value, std::uint64_t payload, std::size_t global_id, std::size_t num_of_functions,
                  std::size_t num_of_bins);
   HashTableEntry(const HashTableEntry& other);
 
@@ -62,6 +64,8 @@ class HashTableEntry {
 
   std::uint64_t GetElement() const { return value_; }
 
+  std::uint64_t GetPayload() const { return payload_; }
+
   void IterateFunctionNumber() {
     current_function_id_ = (current_function_id_ + 1) % num_of_hash_functions_;
   }
@@ -72,8 +76,10 @@ class HashTableEntry {
   std::size_t num_of_hash_functions_;
   std::size_t num_of_bins_;
   std::size_t global_id_;
+  bool has_payload_;
 
   uint64_t value_;
+  uint64_t payload_; //maybe check std::optional
   std::size_t current_function_id_;
   std::vector<std::size_t> possible_addresses_;
 };
