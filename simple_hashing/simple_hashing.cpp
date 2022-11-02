@@ -125,20 +125,18 @@ std::vector<uint64_t> SimpleTable::PayloadsAsRawVector() const {
 }
 
 std::vector<std::vector<uint64_t>> SimpleTable::AsRaw2DVector() const {
-  if (!this->HasPayloads()) {
-    throw std::invalid_argument("Simple table does not have payloads, so can't return 2D vector of them");
-  }
   std::vector<std::vector<uint64_t>> raw_table(num_bins_);
-
   for (auto i = 0ull; i < num_bins_; ++i) {
     for (auto j = 0ull; j < hash_table_.at(i).size(); ++j) {
-      raw_table.at(i).push_back(
-          hash_table_.at(i).at(j).GetPayload());
+	raw_table.at(i).push_back(
+				  hash_table_.at(i).at(j).GetElement() ^
+				  static_cast<uint64_t>(hash_table_.at(i).at(j).GetCurrentFunctinId()));
     }
   }
-
-  return raw_table;
+    
+  return raw_table;  
 }
+ 
 
 std::vector<std::vector<uint64_t>> SimpleTable::ObtainBinEntryValues() const {
   std::vector<std::vector<uint64_t>> raw_table(num_bins_);
