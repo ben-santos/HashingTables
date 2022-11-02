@@ -63,6 +63,11 @@ class SimpleTable final: public HashingTable {
   std::vector<std::vector<uint64_t>> AsRaw2DVector() const;
   std::vector<std::vector<uint64_t>> PayloadsAsRaw2DVector() const;
 
+  std::vector<uint64_t> ObtainEntryValues() const final;
+  std::vector<uint64_t> ObtainEntryValuesPadded() const;
+  std::vector<std::vector<uint64_t>> ObtainBinEntryValues() const;
+  std::vector<std::vector<uint64_t>> ObtainBinEntryIds() const;
+
   std::vector<std::size_t> GetNumOfElementsInBins() const final;
   bool HasPayloads() const { return has_payloads_; }
 

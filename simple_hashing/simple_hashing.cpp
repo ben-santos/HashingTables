@@ -96,7 +96,7 @@ void SimpleTable::SetMaximumBinSize(std::size_t size) {
   pad_to_maximum_bin_size = true;
 }
 
-std::vector<uint64_t> SimpleTable::AsRawVector() const {
+std::vector<uint64_t> SimpleTable::ObtainEntryValues() const {
   std::vector<uint64_t> raw_table;
   raw_table.reserve(elements_.size());
 
@@ -109,6 +109,7 @@ std::vector<uint64_t> SimpleTable::AsRawVector() const {
 
   return raw_table;
 }
+
 
 std::vector<uint64_t> SimpleTable::PayloadsAsRawVector() const {
   std::vector<uint64_t> raw_table;
@@ -124,6 +125,22 @@ std::vector<uint64_t> SimpleTable::PayloadsAsRawVector() const {
 }
 
 std::vector<std::vector<uint64_t>> SimpleTable::AsRaw2DVector() const {
+  if (!this->HasPayloads()) {
+    throw std::invalid_argument("Simple table does not have payloads, so can't return 2D vector of them");
+  }
+  std::vector<std::vector<uint64_t>> raw_table(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    for (auto j = 0ull; j < hash_table_.at(i).size(); ++j) {
+      raw_table.at(i).push_back(
+          hash_table_.at(i).at(j).GetPayload());
+    }
+  }
+
+  return raw_table;
+}
+
+std::vector<std::vector<uint64_t>> SimpleTable::ObtainBinEntryValues() const {
   std::vector<std::vector<uint64_t>> raw_table(num_bins_);
 
   for (auto i = 0ull; i < num_bins_; ++i) {
@@ -153,6 +170,18 @@ std::vector<std::vector<uint64_t>> SimpleTable::PayloadsAsRaw2DVector() const {
   return raw_table;
 }
 
+std::vector<std::vector<uint64_t>> SimpleTable::ObtainBinEntryIds() const {
+  std::vector<std::vector<uint64_t>> id_table(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    for (auto j = 0ull; j < hash_table_.at(i).size(); ++j) {
+      id_table.at(i).push_back(hash_table_.at(i).at(j).GetGlobalID());
+    }
+  }
+
+  return id_table;
+}
+
 std::vector<std::size_t> SimpleTable::GetNumOfElementsInBins() const {
   std::vector<uint64_t> num_elements_in_bins(hash_table_.size(), 0);
   for (auto i = 0ull; i < hash_table_.size(); ++i) {
@@ -161,7 +190,7 @@ std::vector<std::size_t> SimpleTable::GetNumOfElementsInBins() const {
   return num_elements_in_bins;
 }
 
-std::vector<uint64_t> SimpleTable::AsRawVectorPadded() const {
+std::vector<uint64_t> SimpleTable::ObtainEntryValuesPadded() const {
   std::vector<uint64_t> raw_table(maximum_bin_size_ * num_bins_, DUMMY_ELEMENT);
 
   for (auto i = 0ull; i < num_bins_; ++i) {

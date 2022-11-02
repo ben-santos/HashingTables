@@ -63,6 +63,12 @@ class CuckooTable final: public HashingTable {
   std::vector<uint64_t> AsRawVector() const final;
   std::vector<uint64_t> PayloadsAsRawVector() const final;
 
+  std::vector<uint64_t> ObtainEntryValues() const final;
+
+  std::vector<uint64_t> ObtainEntryIds() const;
+
+  std::vector<bool> ObtainBinOccupancy() const;
+
   std::vector<std::size_t> GetNumOfElementsInBins() const final;
 
  private:

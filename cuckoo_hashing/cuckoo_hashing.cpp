@@ -112,7 +112,7 @@ bool CuckooTable::Print() const {
   return true;
 }
 
-std::vector<uint64_t> CuckooTable::AsRawVector() const {
+std::vector<uint64_t> CuckooTable::ObtainEntryValues() const {
   std::vector<uint64_t> raw_table;
   raw_table.reserve(num_bins_);
   // Here, the hash table function is xored to the value.
@@ -140,6 +140,29 @@ std::vector<uint64_t> CuckooTable::PayloadsAsRawVector() const {
   }
 
   return raw_table;
+}
+
+std::vector<uint64_t> CuckooTable::ObtainEntryIds() const {
+  std::vector<uint64_t> id_table;
+  id_table.reserve(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    id_table.push_back(hash_table_.at(i).GetGlobalID());
+  }
+
+  return id_table;
+}
+
+std::vector<bool> CuckooTable::ObtainBinOccupancy() const {
+  // Shows whether the entry is not empty
+  std::vector<bool> occ_table;
+  occ_table.reserve(num_bins_);
+
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    occ_table.push_back(!hash_table_.at(i).IsEmpty());
+  }
+
+  return occ_table;
 }
 
 std::vector<std::size_t> CuckooTable::GetNumOfElementsInBins() const {
