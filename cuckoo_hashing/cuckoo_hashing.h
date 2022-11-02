@@ -1,5 +1,7 @@
 #pragma once
 
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
 // \file cuckoo_hashing.h
 // \author Oleksandr Tkachenko
@@ -23,6 +25,9 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+// Modified by Zachary Zanussi
+// Modified by Akash Shah
+// Modified by Ben Santos
 
 #include "common/hashing.h"
 
@@ -32,6 +37,9 @@ class HashTableEntry;
 
 class CuckooTable final: public HashingTable {
  public:
+ 
+  std::vector<HashTableEntry> hash_table_, stash_;
+  
   CuckooTable() = delete;
 
   CuckooTable(double epsilon) : CuckooTable(epsilon, 0, 0){};
@@ -47,6 +55,7 @@ class CuckooTable final: public HashingTable {
   bool Insert(std::uint64_t element) final;
 
   bool Insert(const std::vector<std::uint64_t>& elements) final;
+  
   bool Insert(const std::vector<std::uint64_t>& elements,
               const std::vector<std::uint64_t>& payloads) final;
 
@@ -61,6 +70,7 @@ class CuckooTable final: public HashingTable {
   auto HasPayloads() const { return has_payloads_; }
 
   std::vector<uint64_t> AsRawVector() const final;
+  
   std::vector<uint64_t> PayloadsAsRawVector() const final;
 
   std::vector<uint64_t> ObtainEntryValues() const final;
@@ -71,8 +81,10 @@ class CuckooTable final: public HashingTable {
 
   std::vector<std::size_t> GetNumOfElementsInBins() const final;
 
+    std::vector<uint64_t> GetElementAddresses();
+
  private:
-  std::vector<HashTableEntry> hash_table_, stash_;
+
   std::size_t recursion_limiter_ = 200;
 
   struct Statistics {

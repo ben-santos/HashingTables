@@ -1,3 +1,5 @@
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
 // \file cuckoo_hashing.cpp
 // \author Oleksandr Tkachenko
@@ -21,6 +23,9 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+// Modified by Zachary Zanussi
+// Modified by Akash Shah
+// Modified by Ben Santos
 
 #include "cuckoo_hashing.h"
 
@@ -120,6 +125,19 @@ std::vector<uint64_t> CuckooTable::ObtainEntryValues() const {
   // It's not an issue, because it's done on both sides, but
   // it does obscure cleartext following. 
   // I'm not sure why they do this.
+  for (auto i = 0ull; i < num_bins_; ++i) {
+    raw_table.push_back(hash_table_.at(i).GetElement() ^
+                        static_cast<uint64_t>(hash_table_.at(i).GetCurrentFunctinId()));
+  }
+
+  return raw_table;
+}
+
+
+std::vector<uint64_t> CuckooTable::AsRawVector() const {
+  std::vector<uint64_t> raw_table;
+  raw_table.reserve(num_bins_);
+
   for (auto i = 0ull; i < num_bins_; ++i) {
     raw_table.push_back(hash_table_.at(i).GetElement() ^
                         static_cast<uint64_t>(hash_table_.at(i).GetCurrentFunctinId()));
@@ -242,5 +260,26 @@ bool CuckooTable::MapElementsToTable() {
   mapped_ = true;
 
   return true;
+}
+
+std::vector<uint64_t> CuckooTable::GetElementAddresses() {
+  std::vector<uint64_t> hash_addresses;
+  hash_addresses.reserve(elements_.size()*num_of_hash_functions_);
+
+  AllocateLUTs();
+  GenerateLUTs();
+
+  for(auto i = 0ull; i < elements_.size(); ++i) {
+    HashTableEntry current_entry(elements_.at(i), i, num_of_hash_functions_,
+                                 num_bins_);
+    //std::cout<<elements_.at(i) << std::endl;
+    auto addresses = HashToPosition(elements_.at(i));
+    current_entry.SetPossibleAddresses(std::move(addresses));
+    for(auto j = 0ull; j < num_of_hash_functions_; ++j) {
+      //current_entry.SetCurrentAddress(j);
+      hash_addresses[i*num_of_hash_functions_+j]= current_entry.GetAddressAt(j);
+    }
+  }
+  return hash_addresses;
 }
 }
